@@ -292,9 +292,9 @@ export default function RadioApp() {
             <motion.div 
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border border-white/10 shadow-[0_0_40px_rgba(255,78,0,0.15)]"
+              className="w-20 h-20 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(255,78,0,0.15)]"
             >
-              <Waves className="w-8 h-8 text-[#ff4e00]" strokeWidth={1.5} />
+              <img src="/logo.png" alt="RadioBroadcast" className="w-20 h-20 rounded-full object-cover" />
             </motion.div>
           </div>
           
