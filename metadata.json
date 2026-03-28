@@ -1,0 +1,5 @@
+{
+  "name": "Radio Broadcast",
+  "description": "A real-time radio broadcasting app where users can create frequencies and tune in to listen.",
+  "requestFramePermissions": ["microphone"]
+}
