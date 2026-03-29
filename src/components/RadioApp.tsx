@@ -78,7 +78,8 @@ export default function RadioApp() {
   };
 
   useEffect(() => {
-    socketRef.current = io({
+    const serverUrl = import.meta.env.VITE_API_URL || 'https://radiobroadcast-server.onrender.com';
+    socketRef.current = io(serverUrl, {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
