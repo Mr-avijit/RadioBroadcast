@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "start": "node server-prod.js"
+    "start": "node server-prod.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
