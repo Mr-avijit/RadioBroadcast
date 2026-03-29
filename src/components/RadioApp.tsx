@@ -24,8 +24,6 @@ export default function RadioApp() {
   
   const [description, setDescription] = useState('');
   const [passcode, setPasscode] = useState('');
-  const [freqStatus, setFreqStatus] = useState<'checking' | 'available' | 'active' | null>(null);
-  const [activeDescription, setActiveDescription] = useState('');
   const [joinError, setJoinError] = useState('');
 
   // PWA Install prompt
@@ -123,44 +121,10 @@ export default function RadioApp() {
   }, [messages]);
 
   useEffect(() => {
-    if (!frequency.trim() || !socketRef.current) {
-      setFreqStatus(null);
+    if (!frequency.trim()) {
       setJoinError('');
-      return;
     }
-    const timer = setTimeout(() => {
-      setFreqStatus('checking');
-      setJoinError('');
-
-      if (!isSocketConnected) {
-        // If socket is not connected, fallback: mark as available after brief delay
-        const fallbackTimer = setTimeout(() => {
-          setFreqStatus('available');
-          setActiveDescription('');
-        }, 800);
-        return () => clearTimeout(fallbackTimer);
-      }
-
-      // Socket connected — ask the server
-      const callbackTimeout = setTimeout(() => {
-        // If server doesn't respond in 3s, fallback to available
-        setFreqStatus('available');
-        setActiveDescription('');
-      }, 3000);
-
-      socketRef.current?.emit('check-frequency', frequency, (res: { exists: boolean, description?: string }) => {
-        clearTimeout(callbackTimeout);
-        if (res.exists) {
-          setFreqStatus('active');
-          setActiveDescription(res.description || '');
-        } else {
-          setFreqStatus('available');
-          setActiveDescription('');
-        }
-      });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [frequency, isSocketConnected]);
+  }, [frequency]);
 
   const generatePasscode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -329,7 +293,6 @@ export default function RadioApp() {
     setListeners([]);
     setIsReceiving(false);
     setAudioBlocked(false);
-    setFreqStatus(null);
     setJoinError('');
     setPasscode('');
     setDescription('');
@@ -422,71 +385,42 @@ export default function RadioApp() {
                   className="w-full bg-black/20 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-white/20 focus:outline-none focus:border-[#ff4e00]/50 transition-all font-mono text-xl tracking-widest"
                 />
                 <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                  {freqStatus === 'checking' && <div className="w-4 h-4 border-2 border-[#ff4e00] border-t-transparent rounded-full animate-spin" />}
-                  {freqStatus === 'available' && <span className="text-[#ff4e00] text-xs font-mono uppercase tracking-widest">Available</span>}
-                  {freqStatus === 'active' && <span className="text-blue-400 text-xs font-mono uppercase tracking-widest">Live</span>}
                   <span className="text-white/30 font-mono text-sm">MHz</span>
                 </div>
               </div>
             </div>
 
             <AnimatePresence>
-              {freqStatus === 'active' && (
+              {frequency.trim() && (
                 <motion.div 
-                  key="active-info"
+                  key="form-inputs"
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5 overflow-hidden"
+                  className="space-y-6 overflow-hidden"
                 >
-                  <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-blue-400/70 mt-0.5 shrink-0" />
-                    <div>
-                      <h4 className="text-xs font-mono uppercase tracking-widest text-blue-400/70 mb-2">Broadcast Info</h4>
-                      <p className="text-sm text-blue-100/80 font-serif italic leading-relaxed">{activeDescription || 'A peaceful transmission is active on this frequency.'}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {freqStatus === 'available' && (
-                <motion.div 
-                  key="available-desc"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3 overflow-hidden"
-                >
-                  <label className="block text-xs font-mono uppercase tracking-widest text-white/50 ml-1">Description (Optional)</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="What is the mood of your broadcast?"
-                    className="w-full bg-black/20 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-white/20 focus:outline-none focus:border-[#ff4e00]/50 transition-all resize-none h-28 text-sm font-serif italic leading-relaxed"
-                  />
-                </motion.div>
-              )}
-
-              {(freqStatus === 'available' || freqStatus === 'active') && (
-                <motion.div 
-                  key="passcode-input"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3 overflow-hidden"
-                >
-                  <label className="block text-xs font-mono uppercase tracking-widest text-white/50 ml-1 flex items-center gap-2">
-                    <Lock className="w-3 h-3" /> Passcode
-                  </label>
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={passcode}
-                      onChange={(e) => setPasscode(e.target.value.toUpperCase())}
-                      placeholder="Enter Passcode"
-                      className="min-w-0 flex-1 bg-black/20 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-white/20 focus:outline-none focus:border-[#ff4e00]/50 transition-all font-mono tracking-[0.2em] text-lg"
+                  <div className="space-y-3">
+                    <label className="block text-xs font-mono uppercase tracking-widest text-white/50 ml-1">Description (Optional, for Broadcasters)</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="What is the mood of your broadcast?"
+                      className="w-full bg-black/20 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-white/20 focus:outline-none focus:border-[#ff4e00]/50 transition-all resize-none h-28 text-sm font-serif italic leading-relaxed"
                     />
-                    {freqStatus === 'available' && (
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-xs font-mono uppercase tracking-widest text-white/50 ml-1 flex items-center gap-2">
+                      <Lock className="w-3 h-3" /> Passcode
+                    </label>
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        value={passcode}
+                        onChange={(e) => setPasscode(e.target.value.toUpperCase())}
+                        placeholder="Enter Passcode"
+                        className="min-w-0 flex-1 bg-black/20 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-white/20 focus:outline-none focus:border-[#ff4e00]/50 transition-all font-mono tracking-[0.2em] text-lg"
+                      />
                       <button
                         onClick={generatePasscode}
                         className="shrink-0 px-6 bg-white/5 hover:bg-white/10 text-white/70 rounded-2xl transition-colors flex items-center justify-center border border-white/5"
@@ -494,7 +428,7 @@ export default function RadioApp() {
                       >
                         <KeyRound className="w-5 h-5" />
                       </button>
-                    )}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -514,29 +448,34 @@ export default function RadioApp() {
               )}
             </AnimatePresence>
 
-            <div className="pt-6">
-              {freqStatus === 'available' && (
-                <button
-                  onClick={() => handleJoin('broadcaster')}
-                  disabled={!frequency || !passcode}
-                  className="w-full flex items-center justify-center gap-3 p-5 rounded-2xl bg-[#ff4e00] hover:bg-[#ff6a2b] text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono uppercase tracking-widest text-sm"
+            <AnimatePresence>
+              {frequency.trim() && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="pt-6 space-y-4 overflow-hidden"
                 >
-                  <Mic className="w-5 h-5" />
-                  Start Transmission
-                </button>
+                  <button
+                    onClick={() => handleJoin('broadcaster')}
+                    disabled={!frequency || !passcode}
+                    className="w-full flex items-center justify-center gap-3 p-5 rounded-2xl bg-[#ff4e00] hover:bg-[#ff6a2b] text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono uppercase tracking-widest text-sm"
+                  >
+                    <Mic className="w-5 h-5" />
+                    Start Transmission (Create)
+                  </button>
+                  
+                  <button
+                    onClick={() => handleJoin('receiver')}
+                    disabled={!frequency || !passcode}
+                    className="w-full flex items-center justify-center gap-3 p-5 rounded-2xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono uppercase tracking-widest text-sm"
+                  >
+                    <Radio className="w-5 h-5" />
+                    Tune In (Connect)
+                  </button>
+                </motion.div>
               )}
-              
-              {freqStatus === 'active' && (
-                <button
-                  onClick={() => handleJoin('receiver')}
-                  disabled={!frequency || !passcode}
-                  className="w-full flex items-center justify-center gap-3 p-5 rounded-2xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono uppercase tracking-widest text-sm"
-                >
-                  <Radio className="w-5 h-5" />
-                  Tune In
-                </button>
-              )}
-            </div>
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>
